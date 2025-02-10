@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fake Review Detector</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Fake Review Detector</h1>
+        
+        <!-- Input Form -->
+        <form method="POST" action="/analyze">
+            <div class="input-group mb-3">
+                <input type="url" class="form-control" name="product_url" 
+                       placeholder="Enter Product URL" required>
+                <button class="btn btn-primary" type="submit">Analyze Reviews</button>
+            </div>
+        </form>
+
+        <!-- Results Display -->
+        {% if results %}
+        <div class="mt-4">
+            <h3>Results:</h3>
+            <div class="results">
+                {% for review in results %}
+                <div class="card mb-2 {% if review.prediction == 'Real' %}bg-success{% else %}bg-danger{% endif %}">
+                    <div class="card-body">
+                        <p class="card-text text-white">{{ review.text }}</p>
+                        <span class="badge bg-light text-dark">
+                            {{ review.prediction }} ({{ review.probability }}%)
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Error Handling -->
+        {% if error %}
+        <div class="alert alert-danger mt-4">{{ error }}</div>
+        {% endif %}
+    </div>
+</body>
+</html>
