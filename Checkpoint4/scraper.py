@@ -10,17 +10,18 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # Function to scrape reviews from a product URL
-def scrape_reviews(product_url, review_selector, text_selector, rating_selector, author_selector, date_selector):
+def scrape_reviews(product_url, review_selector=".review", text_selector=".review-text", 
+                   rating_selector=".review-rating", author_selector=".review-author", 
+                   date_selector=".review-date"):
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
     }
 
     try:
-        logging.info(f"Fetching {product_url}...")
         response = requests.get(product_url, headers=headers)
         response.raise_for_status()
     except requests.exceptions.RequestException as e:
-        logging.error(f"Error fetching the page: {e}")
+        print(f"Error fetching the page: {e}")
         return pd.DataFrame()
 
     soup = BeautifulSoup(response.content, "html.parser")
