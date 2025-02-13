@@ -15,16 +15,14 @@ USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/92.0"
 ]
 
-def scrape_reviews(product_url, review_selector=".review", text_selector=".review-text", 
-                   rating_selector=".review-rating", author_selector=".review-author", 
-                   date_selector=".review-date"):
+def scrape_reviews(product_url, **selectors):
     """
-    Scrape reviews from a product page using the provided selectors.
+    Scrape reviews from a product page using dynamically provided selectors.
     """
     headers = {
-        "User-Agent": choice(USER_AGENTS)  # Random User-Agent to prevent blocking
+        "User-Agent": choice(USER_AGENTS),  # Random User-Agent to prevent blocking
+        "Accept-Language": "en-US,en;q=0.9"
     }
-
     session = requests.Session()
 
     try:
@@ -35,8 +33,9 @@ def scrape_reviews(product_url, review_selector=".review", text_selector=".revie
         logging.error(f"Error fetching the page: {e}")
         return pd.DataFrame()
 
-    time.sleep(5)  # Wait to prevent blocking
+    time.sleep(3)  # Shortened wait time to optimize scraping
     soup = BeautifulSoup(response.content, "html.parser")
+    review_selector = selectors.get("review_selector", ".review")
     reviews = soup.select(review_selector)
 
     if not reviews:
@@ -46,15 +45,10 @@ def scrape_reviews(product_url, review_selector=".review", text_selector=".revie
     review_texts, ratings, reviewer_names, review_dates = [], [], [], []
 
     for review in reviews:
-        text = review.select_one(text_selector)
-        rating = review.select_one(rating_selector)
-        name = review.select_one(author_selector)
-        date = review.select_one(date_selector)
-
-        review_texts.append(text.get_text(strip=True) if text else None)
-        ratings.append(clean_rating(rating.get_text(strip=True)) if rating else None)
-        reviewer_names.append(name.get_text(strip=True) if name else None)
-        review_dates.append(date.get_text(strip=True) if date else None)
+        review_texts.append(extract_text(review, selectors.get("text_selector", ".review-text")))
+        ratings.append(clean_rating(extract_text(review, selectors.get("rating_selector", ".review-rating"))))
+        reviewer_names.append(extract_text(review, selectors.get("author_selector", ".review-author")))
+        review_dates.append(extract_text(review, selectors.get("date_selector", ".review-date")))
 
     return pd.DataFrame({
         "Review Text": review_texts,
@@ -63,10 +57,15 @@ def scrape_reviews(product_url, review_selector=".review", text_selector=".revie
         "Review Date": review_dates
     })
 
+def extract_text(element, selector):
+    """Helper function to safely extract text from an element."""
+    if not selector:
+        return None
+    found_element = element.select_one(selector)
+    return found_element.get_text(strip=True) if found_element else None
+
 def clean_rating(rating):
-    """
-    Clean and extract numeric value from the rating text.
-    """
+    """Clean and extract numeric value from the rating text."""
     if rating:
         try:
             return float(rating.split()[0])

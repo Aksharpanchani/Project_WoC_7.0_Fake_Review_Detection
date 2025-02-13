@@ -7,7 +7,11 @@ import pandas as pd
 app = Flask(__name__)
 
 # Load the trained pipeline (vectorizer + model)
-pipeline = joblib.load('model.pkl')
+try:
+    pipeline = joblib.load('model.pkl')
+except Exception as e:
+    pipeline = None
+    print(f"Error loading model: {e}")
 
 @app.route('/')
 def home():
@@ -21,12 +25,15 @@ def analyze():
     """
     Analyze reviews from the provided product URL.
     """
+    if not pipeline:
+        return render_template('index.html', error="Model not loaded properly!")
+    
     product_url = request.form['product_url']
     
     try:
-        # Define selectors for the target website (e.g., Amazon)
+        # Define selectors for the target website (Update based on real structure)
         selectors = {
-            "review_selector": ".review",  # Update based on the website
+            "review_selector": ".review",
             "text_selector": ".review-text",
             "rating_selector": ".review-rating",
             "author_selector": ".review-author",
@@ -36,19 +43,18 @@ def analyze():
         # Scrape reviews with selectors
         reviews_df = scrape_reviews(product_url, **selectors)
         if reviews_df.empty:
-            return render_template('index.html', error="No reviews found!")
+            return render_template('index.html', error="No reviews found! Try another URL.")
 
         # Classify reviews using the loaded pipeline
         reviews = []
-        for text in reviews_df['Review Text']:
-            if text:  # Ensure the review text is not empty
-                prediction = pipeline.predict([text])[0]  # Predict using the pipeline
-                probability = pipeline.predict_proba([text])[0][1] * 100  # Get probability
-                reviews.append({
-                    'text': text,
-                    'prediction': 'Real' if prediction == 1 else 'Fake',
-                    'probability': round(probability, 2)
-                })
+        for text in reviews_df['Review Text'].dropna():  # Drop missing values
+            prediction = pipeline.predict([text])[0]  # Predict using the pipeline
+            probability = pipeline.predict_proba([text])[0][1] * 100  # Get probability
+            reviews.append({
+                'text': text,
+                'prediction': 'Real' if prediction == 1 else 'Fake',
+                'probability': round(probability, 2)
+            })
 
         return render_template('index.html', results=reviews)
 
