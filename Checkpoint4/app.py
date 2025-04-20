@@ -8,7 +8,9 @@ app = Flask(__name__)
 
 # Load the trained pipeline (vectorizer + model)
 try:
+    #pipeline = joblib.load('svc_pipeline.pkl')
     pipeline = joblib.load('model.pkl')
+    print("Model loaded successfully!")
 except Exception as e:
     pipeline = None
     print(f"Error loading model: {e}")
